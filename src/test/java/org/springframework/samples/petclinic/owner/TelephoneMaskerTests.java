@@ -22,10 +22,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for {@link TelephoneMasker}: the masking rule must be deterministic - reveal
  * only the last 4 characters and mask every character before them with one asterisk each.
+ * Also covers the support-diagnostics switch: with masking disabled, values are returned
+ * unchanged.
  */
 class TelephoneMaskerTests {
 
-	private final TelephoneMasker telephoneMasker = new TelephoneMasker();
+	private final TelephoneMasker telephoneMasker = new TelephoneMasker(true);
 
 	@Test
 	void masksTenDigitTelephoneKeepingLastFourDigits() {
@@ -56,6 +58,26 @@ class TelephoneMaskerTests {
 	void masksByCharacterPositionEvenForFormattedInput() {
 		// 14 characters: 10 asterisks, then the last 4 characters.
 		assertThat(telephoneMasker.mask("(608) 555-1023")).isEqualTo("**********1023");
+	}
+
+	@Test
+	void diagnosticsModeReturnsTenDigitTelephoneUnchanged() {
+		assertThat(new TelephoneMasker(false).mask("6085551023")).isEqualTo("6085551023");
+	}
+
+	@Test
+	void diagnosticsModeReturnsFormattedInputUnchanged() {
+		assertThat(new TelephoneMasker(false).mask("(608) 555-1023")).isEqualTo("(608) 555-1023");
+	}
+
+	@Test
+	void diagnosticsModeStillPassesNullThrough() {
+		assertThat(new TelephoneMasker(false).mask(null)).isNull();
+	}
+
+	@Test
+	void diagnosticsModeStillPassesEmptyStringThrough() {
+		assertThat(new TelephoneMasker(false).mask("")).isEmpty();
 	}
 
 }

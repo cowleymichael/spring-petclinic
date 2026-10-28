@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledInNativeImage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
@@ -347,8 +348,8 @@ class OwnerControllerTests {
 	static class TelephoneMaskerConfiguration {
 
 		@Bean
-		TelephoneMasker telephoneMasker() {
-			return new TelephoneMasker();
+		TelephoneMasker telephoneMasker(@Value("${petclinic.privacy.mask-telephones:true}") boolean maskTelephones) {
+			return new TelephoneMasker(maskTelephones);
 		}
 
 	}

@@ -15,6 +15,7 @@
  */
 package org.springframework.samples.petclinic.owner;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -28,6 +29,12 @@ import org.springframework.stereotype.Component;
  * them with exactly one asterisk ({@code '*'}).
  *
  * <p>
+ * Support-diagnostics switch: masking can be turned off with the
+ * {@code petclinic.privacy.mask-telephones=false} property so Operations can see full
+ * numbers on the owners list page; the default ({@code true}) keeps the list masked. The
+ * owner detail page always shows the full number regardless of this switch.
+ *
+ * <p>
  * Registered as a Spring bean because Thymeleaf 3.1+ forbids SpEL type references
  * ({@code T(...)}) in template expressions, so the list template calls it as
  * {@code @telephoneMasker}.
@@ -35,20 +42,29 @@ import org.springframework.stereotype.Component;
 @Component
 public final class TelephoneMasker {
 
-	public TelephoneMasker() {
+	private final boolean maskTelephones;
+
+	/**
+	 * @param maskTelephones whether list-page telephone masking is enabled (property
+	 * {@code petclinic.privacy.mask-telephones}, default {@code true})
+	 */
+	public TelephoneMasker(@Value("${petclinic.privacy.mask-telephones:true}") boolean maskTelephones) {
+		this.maskTelephones = maskTelephones;
 	}
 
 	/**
-	 * Mask the given telephone for list display. The rule is character-position based and
+	 * Mask the given telephone for list display, or return it unchanged when masking is
+	 * disabled (support-diagnostics mode). The rule is character-position based and
 	 * deterministic: {@code null} and the empty string are returned unchanged (the list
-	 * page renders them as blank, exactly as it does today); values of length 4 or less
-	 * are fully masked; longer values keep only their last 4 characters, e.g.
-	 * {@code "6085551023"} becomes {@code "******1023"}.
+	 * page renders them as blank); values of length 4 or less are fully masked; longer
+	 * values keep only their last 4 characters, e.g. {@code "6085551023"} becomes
+	 * {@code "******1023"}.
 	 * @param telephone the telephone value as stored (may be {@code null})
-	 * @return the masked value for display, or the unchanged {@code null}/empty input
+	 * @return the masked value for display, the unchanged input in diagnostics mode, or
+	 * the unchanged {@code null}/empty input
 	 */
 	public String mask(String telephone) {
-		if (telephone == null || telephone.isEmpty()) {
+		if (!this.maskTelephones || telephone == null || telephone.isEmpty()) {
 			return telephone;
 		}
 		int length = telephone.length();
