@@ -20,7 +20,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledInNativeImage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +35,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
@@ -313,6 +316,41 @@ class OwnerControllerTests {
 			.andExpect(status().is3xxRedirection())
 			.andExpect(redirectedUrl("/owners/" + pathOwnerId + "/edit"))
 			.andExpect(flash().attributeExists("error"));
+	}
+
+	@Test
+	void processFindFormMasksTelephoneNumberOnList() throws Exception {
+		Page<Owner> tasks = new PageImpl<>(List.of(george(), new Owner()));
+		when(this.owners.findByLastNameStartingWith(anyString(), any(Pageable.class))).thenReturn(tasks);
+		mockMvc.perform(get("/owners?page=1"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("******1023")))
+			.andExpect(content().string(not(containsString("6085551023"))));
+	}
+
+	@Test
+	void showOwnerRendersFullTelephoneNumberOnDetailPage() throws Exception {
+		mockMvc.perform(get("/owners/{ownerId}", TEST_OWNER_ID))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("6085551023")));
+	}
+
+	/**
+	 * The owners list template resolves TelephoneMasker as the {@code @telephoneMasker}
+	 * bean. The {@code @WebMvcTest} slice does not component-scan plain
+	 * {@code @Component} classes, so the bean is registered here under its production
+	 * bean name (a plain {@code @Import(TelephoneMasker.class)} would register it under
+	 * its fully-qualified class name instead, which the template expression cannot
+	 * resolve).
+	 */
+	@TestConfiguration
+	static class TelephoneMaskerConfiguration {
+
+		@Bean
+		TelephoneMasker telephoneMasker() {
+			return new TelephoneMasker();
+		}
+
 	}
 
 }
